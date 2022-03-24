@@ -1,1 +1,303 @@
+<ROSETTASCRIPTS>
+        <SCOREFXNS>
+           <ScoreFunction name="SFXN1" weights="fldsgn_cen" >
+                <Reweight scoretype="hbond_sr_bb" weight="1.0" />
+                <Reweight scoretype="hbond_lr_bb" weight="1.0" />
+                <Reweight scoretype="atom_pair_constraint" weight="0.2"/>
+                <Reweight scoretype="angle_constraint" weight="0.2" />
+                <Reweight scoretype="dihedral_constraint" weight="0.2" />
+                <Reweight scoretype="omega" weight="0.5" />
+           </ScoreFunction>
 
+           <ScoreFunction name="ref2015_cst" weights="ref2015_cst.wts" />
+           <ScoreFunction name="ref2015" weights="ref2015.wts" />
+
+	</SCOREFXNS>
+
+        <MOVERS>
+                <MakePolyX name="polyval" aa="VAL" />
+        </MOVERS>
+
+        <RESIDUE_SELECTORS>
+                # resfile residues if some aminoacids are specified for design.
+                <Index name="resfile_residues" resnums="xxx"/>
+                <Not name="not_resfile" selector="resfile_residues" />
+
+		# secondary structure selections
+                <SecondaryStructure name="strands_ini" ss="E" include_terminal_loops="0"  use_dssp="0" pose_secstruct="xxx" />
+                <SecondaryStructure name="loops_ini" ss="L" include_terminal_loops="0"  use_dssp="0" pose_secstruct="xxx" />
+                <PrimarySequenceNeighborhood name="loops_edges_ini" lower="1" upper="1" selector="loops_ini" />
+                <And name="strands" selectors="strands_ini,not_resfile" />
+                <And name="loops" selectors="loops_ini,not_resfile" />
+                <And name="loops_and_edges" selectors="loops_edges_ini,not_resfile" />
+                <And name="edges" selectors="strands,loops_and_edges"/>
+
+                <Not name="strand_secondary_structure_ini" selector="loops_and_edges" />
+                <And name="strand_secondary_structure" selectors="strand_secondary_structure_ini,not_resfile" />
+
+                # layers definitions
+                <Layer name="surface" select_surface="1" use_sidechain_neighbors="1"
+                   core_cutoff="3.0" surface_cutoff="1.8" />
+                <Layer name="boundary" select_boundary="1" use_sidechain_neighbors="1"
+                   core_cutoff="3.0" surface_cutoff="1.8" />
+                <Layer name="core" select_core="1" use_sidechain_neighbors="1"
+                   core_cutoff="3.0" surface_cutoff="1.8" />
+                <Layer name="all_layers" select_core="1" select_boundary="1" select_surface="1" use_sidechain_neighbors="1" core_cutoff="3.0" surface_cutoff="1.8" />
+                <And name="strand_surface" selectors="strand_secondary_structure,surface" />
+                <And name="strand_boundary" selectors="strand_secondary_structure,boundary" />
+                <And name="strand_core" selectors="strand_secondary_structure,core" />
+                <And name="loops_and_edges_surface" selectors="loops_and_edges,surface" />
+                <And name="loops_and_edges_boundary" selectors="loops_and_edges,boundary" />
+                <And name="loops_and_edges_core" selectors="loops_and_edges,core" />
+                <And name="edges_core" selectors="edges,core" />
+                <And name="loops_core" selectors="loops,core" />
+                <And name="loops_not_resfile" selectors="loops_and_edges,not_resfile" />
+                <Not name="not_loops" selector="loops_and_edges" />
+
+
+        </RESIDUE_SELECTORS>
+
+        <TASKOPERATIONS>
+            <LimitAromaChi2 name="limitchi2" include_trp="1" />
+	    <ReadResfile name="resfile" filename="./resfile"/>
+
+
+            <OperateOnResidueSubset name="design_loops_surface" selector="loops_and_edges_surface">
+                    <RestrictAbsentCanonicalAASRLT aas="DEGKNPQRST"/>
+            </OperateOnResidueSubset>
+            <OperateOnResidueSubset name="design_loops_boundary" selector="loops_and_edges_boundary">
+                    <RestrictAbsentCanonicalAASRLT aas="ADEGKNPQRSTV"/>
+            </OperateOnResidueSubset>
+            <OperateOnResidueSubset name="design_loops_core" selector="loops_core">
+                    <RestrictAbsentCanonicalAASRLT aas="AGILPVNST"/>
+            </OperateOnResidueSubset>
+            <OperateOnResidueSubset name="design_edges_core" selector="edges_core">
+                    <RestrictAbsentCanonicalAASRLT aas="AGPVILMWFYNST"/>
+            </OperateOnResidueSubset>
+
+            <OperateOnResidueSubset name="strand_surface_aa" selector="strand_surface">
+                    <RestrictAbsentCanonicalAASRLT aas="EHKRQST"/>
+            </OperateOnResidueSubset>
+            <OperateOnResidueSubset name="strand_boundary_aa" selector="strand_boundary">
+                    <RestrictAbsentCanonicalAASRLT aas="EFIKLQRSTVWY"/>
+            </OperateOnResidueSubset>
+            <OperateOnResidueSubset name="strand_core_aa" selector="strand_core">
+                    <RestrictAbsentCanonicalAASRLT aas="VILMWFY"/>
+            </OperateOnResidueSubset>
+
+	    <ExtraRotamersGeneric name="ex1ex2" ex1="1" ex2aro="1" />
+
+            <ConsensusLoopDesign name="disallow_nonnative_loop_sequences"
+                     residue_selector="loops_and_edges"
+                     include_adjacent_residues="1"
+                     enrichment_threshold="0.25"
+                     use_dssp="1" />
+
+            <OperateOnResidueSubset name="fixed_not_loops" selector="not_loops">
+                        <PreventRepackingRLT/>
+            </OperateOnResidueSubset>
+
+        </TASKOPERATIONS>
+
+	<FILTERS>
+ 
+
+                
+	</FILTERS>
+
+	<FILTERS>
+		#########################
+		#### general filters ####
+		#########################
+
+		# Count the number of residues for normalizing filter values.
+		<ResidueCount name="nres" confidence="0" />
+		#########################
+
+
+                ###################################
+                #### backbone building filters ####
+                ###################################
+		
+                # Ensure the secondary structure in the folded structure matches closely that defined in the blueprint file.
+		<SecondaryStructure name="ss1" use_abego="0" blueprint="bp1" threshold="0.80" confidence="1"/>
+
+		# Specify desired beta-strand pairings in the folded structure.
+		<SheetTopology name="st1" topology="1-2.A.99;3-4.A.99;3-6.A.99;2-5.A.99;6-7.A.99" blueprint="bp1" confidence="1"/>
+
+
+                # long-range backbone hydrogen bonding to check for good hbonded strand pairing.
+                <ScoreType name="all_lr_hb_fa" scorefxn="ref2015" score_type="hbond_lr_bb" threshold="0.0" confidence="0" />
+                <CalculatorFilter name="lr_hb_res" confidence="0" equation="SCORE/NRES" threshold="-0.25">
+                             <VAR name="SCORE" filter_name="all_lr_hb_fa" />
+                             <VAR name="NRES" filter_name="nres" />
+                </CalculatorFilter>
+                <CalculatorFilter name="lr_hb_res_filter" confidence="1" equation="SCORE/NRES" threshold="-0.25">
+                             <VAR name="SCORE" filter_name="all_lr_hb_fa" />
+                             <VAR name="NRES" filter_name="nres" />
+                </CalculatorFilter>
+
+		# total score, used for filtering very bad structures.
+		<ScoreType name="tot_score" scorefxn="SFXN1" score_type="total_score" threshold="-10.0" confidence="1" />
+
+		# compound filter used for later filtering of structures generated with the blueprint builder.
+                <CompoundStatement name="secst1" >
+                   <AND filter_name="ss1" />
+                   <AND filter_name="st1" />
+                   <AND filter_name="tot_score" />
+                   <AND filter_name="lr_hb_res_filter" />
+                </CompoundStatement>
+
+
+                # compacity estimate
+                <AverageDegree name="avdeg" threshold="15.0" distance_threshold="10.0" confidence="0"/>
+
+
+
+                #################################
+                #### sequence design filters ####
+                #################################
+
+		# Some score terms normalized by protein length.
+
+                <ScoreType name="score" scorefxn="ref2015" score_type="total_score" threshold="0.0" confidence="0" />
+                <CalculatorFilter name="score_res" confidence="1" equation="SCORE/NRES" threshold="-3.0">
+                             <VAR name="SCORE" filter_name="score" />
+                             <VAR name="NRES" filter_name="nres" />
+                </CalculatorFilter>
+
+                <ScoreType name="rama" scorefxn="ref2015" score_type="rama_prepro" threshold="0.0" confidence="0" />
+                <CalculatorFilter name="rama_res" confidence="0" equation="SCORE/NRES" threshold="0">
+                             <VAR name="SCORE" filter_name="rama" />
+                             <VAR name="NRES" filter_name="nres" />
+                </CalculatorFilter>
+
+                <ScoreType name="fa_atr" scorefxn="ref2015" score_type="fa_atr" threshold="0.0" confidence="0" />
+                <CalculatorFilter name="fa_atr_res" confidence="0" equation="SCORE/NRES" threshold="0">
+                             <VAR name="SCORE" filter_name="fa_atr" />
+                             <VAR name="NRES" filter_name="nres" />
+                </CalculatorFilter>
+
+                <ScoreType name="omega" scorefxn="ref2015" score_type="omega" threshold="0.0" confidence="0" />
+                <CalculatorFilter name="omega_res" confidence="0" equation="SCORE/NRES" threshold="0">
+                             <VAR name="SCORE" filter_name="omega" />
+                             <VAR name="NRES" filter_name="nres" />
+                </CalculatorFilter>
+
+		# total score taking into account protein core residues only.
+		<TaskAwareScoreType name="score_core_res" task_operations="design_core" scorefxn="ref2015" score_type="total_score" mode="average" threshold="-1.8" confidence="0"/>
+
+		<ScoreType name="hbond_bb_sc" scorefxn="ref2015" score_type="hbond_bb_sc" threshold="0.0" confidence="0" />
+               <TaskAwareScoreType name="hbond_bb_sc_average" scorefxn="ref2015" score_type="hbond_bb_sc" mode="average" threshold="-2.1" confidence="0"/>		
+
+		# packing metrics
+                <PackStat name="pack" threshold="0.6" confidence="0"/>
+                <Holes name="holes" threshold="2.0" confidence="0"/>
+                
+                # loop energy metrics              
+                <TaskAwareScoreType name="loops_score_res" scorefxn="ref2015" score_type="total_score" mode="average" threshold="-2.1" confidence="0" task_operations="fixed_not_loops"/>
+                <TaskAwareScoreType name="loops_hbond_bb_sc_average" scorefxn="ref2015" score_type="hbond_bb_sc" mode="average" threshold="-2.1" confidence="0" task_operations="fixed_not_loops"/>
+                <TaskAwareScoreType name="loops_hbond_lr_bb_average" scorefxn="ref2015" score_type="hbond_lr_bb" mode="average" threshold="-2.1" confidence="0" task_operations="fixed_not_loops"/>
+                <TaskAwareScoreType name="loops_hbond_sr_bb_average" scorefxn="ref2015" score_type="hbond_sr_bb" mode="average" threshold="-2.1" confidence="0" task_operations="fixed_not_loops"/>
+                <TaskAwareScoreType name="hbond_lr_bb_average" scorefxn="ref2015" score_type="hbond_lr_bb" mode="average" threshold="-2.1" confidence="0"/>
+                <TaskAwareScoreType name="loops_rama_average" scorefxn="ref2015" score_type="rama_prepro" mode="average" threshold="-2.1" confidence="0" task_operations="fixed_not_loops"/>
+                <ResidueCount name="pro_counter" residue_types="PRO" count_as_percentage="0" confidence="0"/>
+
+		# combined filters used for generic montecarlo sequence optimization
+                <CombinedValue name="comb_filters" confidence="0">
+                  <Add filter_name="score_res" factor="1"/>
+                  <Add filter_name="loops_score_res" factor="1"/>
+                </CombinedValue>
+
+                <BuriedSurfaceArea name="buried_hydrophobic_surface" select_only_FAMILYVW="1" filter_out_low="1" cutoff_buried_surface_area="100" atom_mode="all_atoms" confidence="0" />
+                
+
+	</FILTERS>
+
+
+	<MOVERS>
+	        <Dssp name="dssp"/>
+                <SwitchResidueTypeSetMover name="fullatom" set="fa_standard" />
+                <SwitchResidueTypeSetMover name="cent" set="centroid" />   
+		<ClearConstraintsMover name="remove_cst" />
+
+
+		# backbone building
+                <SetSecStructEnergies name="set_ssene1" scorefxn="SFXN1" blueprint="./bp1.b" />
+                <BluePrintBDR name="bdr1" scorefxn="SFXN1" use_abego_bias="1" blueprint="./bp1.b" constraint_file="./cst1"/>
+                <ConstraintSetMover name="addcst1" add_constraints="1" cst_file="./cst1"/>
+                <ClearConstraintsMover name="remove_cst" />
+
+                <MinMover name="min1" scorefxn="SFXN1" chi="1" bb="1" type="dfpmin_armijo_nonmonotone_atol" tolerance="0.0001"/>
+                <ParsedProtocol name="cenmin1" >
+                  <Add mover_name="cent" />
+                  <Add mover_name="addcst1" />
+                  <Add mover_name="min1" />
+                  <Add mover_name="fullatom" />
+                  <Add mover_name="remove_cst" />
+                </ParsedProtocol>
+                <ParsedProtocol name="bdr1ss" >
+                  <Add mover_name="bdr1" />
+                  <Add mover_name="cenmin1" />
+                  <Add mover_name="dssp" />
+                </ParsedProtocol>
+                <LoopOver name="loop1" mover_name="bdr1ss" filter_name="secst1" drift="0" iterations="50" ms_whenfail="FAIL_DO_NOT_RETRY"/>
+
+
+		<FastDesign name="quick_fdesign" task_operations="resfile,disallow_nonnative_loop_sequences,limitchi2,strand_surface_aa,strand_boundary_aa,strand_core_aa,design_loops_surface,design_loops_boundary,design_loops_core,design_edges_core" scorefxn="ref2015_cst" repeats="2" clear_designable_residues="0" />
+			
+                # quick design step to discard bad structures
+                <ParsedProtocol name="quick_design_filt" >
+                  <Add mover_name="quick_fdesign" />
+                  <Add filter_name="score_res" />
+                </ParsedProtocol>
+
+
+		<FastDesign name="fdesign" task_operations="resfile,ex1ex2,disallow_nonnative_loop_sequences,limitchi2,strand_surface_aa,strand_boundary_aa,strand_core_aa,design_loops_surface,design_loops_boundary,design_loops_core,design_edges_core" scorefxn="ref2015_cst" repeats="4" clear_designable_residues="0" />
+		# for optimization
+                <GenericMonteCarlo name="genericmc" mover_name="fdesign" filter_name="comb_filters" trials="5" sample_type="low" temperature="0.6" drift="1"/>
+
+	</MOVERS>
+
+	<PROTOCOLS>
+		#-------------
+		# design construction
+		#-------------
+
+		# backbone building
+                <Add mover_name="set_ssene1" />
+                <Add mover_name="loop1" />
+
+		# quick design step to discard bad structures
+		<Add mover_name="quick_design_filt" />
+
+		# sequence optimization
+		<Add mover_name="genericmc" />
+
+		#-------------
+		# filters
+		#-------------
+
+		# general energetic terms
+                <Add filter_name="score_res" />
+                <Add filter_name="score_core_res" />
+                <Add filter_name="lr_hb_res_filter" />
+                <Add filter_name="rama_res" />
+                <Add filter_name="omega_res" />
+                <Add filter_name="hbond_bb_sc" />
+
+		# core packing
+                <Add filter_name="holes" />
+                <Add filter_name="pack" />
+                <Add filter_name="fa_atr_res" />			
+                <Add filter_name="avdeg" />
+		<Add filter_name="buried_hydrophobic_surface" />
+		# loops
+                <Add filter_name="pro_counter" />
+                <Add filter_name="loops_rama_average" />
+                <Add filter_name="loops_hbond_bb_sc_average" />
+                <Add filter_name="loops_hbond_lr_bb_average" />
+                <Add filter_name="loops_hbond_sr_bb_average" />
+			
+	</PROTOCOLS>
+</ROSETTASCRIPTS>
