@@ -5,8 +5,12 @@ Here we describe design protocols for de novo immunoglobulin-like domains using 
 https://www.biorxiv.org/content/10.1101/2021.12.20.472081v1
 
 **Contents:**
-* **scripts**
+* **Design scripts**
   
   The build_blueprints python script automatically generates all combinations of blueprint files exploring different strand and loop lengths, as well as specific loop ABEGO types for beta-arch loops and helices. This scripts uses the Blueprint class to manage blueprints as defined in Blueprint.py.
   
   For each of the generated blueprints the xml RosettaScripts file builds backbones by fragment insertion and performs sequence design calculations for optimizing the total score and other filters related to loop geometry, and core packing efficiency.
+  
+ * **Structural analysis scripts**
+
+  The extract_cross_beta_parameters.py python script extracts the rigid-body transformation parameters of the immunoglobulins cross-beta motifs and other geometrical parameters of the two beta-arch loops of the motifs.
