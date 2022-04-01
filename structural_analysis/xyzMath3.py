@@ -1,5 +1,6 @@
 """
 Easy 3D Linear Algebra, like xyz\* in rosetta
+adapted for python3
 """
 from random import gauss, uniform
 from math import pi, sqrt, sin, cos, acos, asin, atan2, degrees, radians, copysign
