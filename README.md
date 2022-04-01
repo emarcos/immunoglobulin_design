@@ -11,6 +11,6 @@ https://www.biorxiv.org/content/10.1101/2021.12.20.472081v1
   
   For each of the generated blueprints the xml RosettaScripts file builds backbones by fragment insertion and performs sequence design calculations for optimizing the total score and other filters related to loop geometry, and core packing efficiency.
   
- * **Structural analysis scripts**
+* **Structural analysis scripts**
 
   The extract_cross_beta_parameters.py python script extracts the rigid-body transformation parameters of the immunoglobulins cross-beta motifs and other geometrical parameters of the two beta-arch loops of the motifs.
